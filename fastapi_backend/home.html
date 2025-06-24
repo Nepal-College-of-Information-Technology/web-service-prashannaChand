@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FastAPI Items</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: #ffffff;
+            max-width: 700px;
+            width: 100%;
+            border-radius: 20px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            overflow: hidden;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4f46e5;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        #items {
+            margin-top: 1.5rem;
+        }
+
+        .item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f3f4f6;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .item-details {
+            flex: 1;
+        }
+
+        .item strong {
+            display: block;
+            font-size: 1.2rem;
+            color: #1f2937;
+        }
+
+        .item span {
+            font-size: 0.95rem;
+            color: #6b7280;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 0.5em 1.2em;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 0.5em;
+            transition: all 0.2s ease;
+        }
+
+        .edit-btn {
+            background: #38bdf8;
+            color: #fff;
+        }
+
+        .edit-btn:hover {
+            background: #0ea5e9;
+        }
+
+        .delete-btn {
+            background: #f87171;
+            color: #fff;
+        }
+
+        .delete-btn:hover {
+            background: #ef4444;
+        }
+
+        .save-btn {
+            background: #22c55e;
+            color: #fff;
+        }
+
+        .save-btn:hover {
+            background: #16a34a;
+        }
+
+        .cancel-btn {
+            background: #9ca3af;
+            color: #fff;
+        }
+
+        .cancel-btn:hover {
+            background: #6b7280;
+        }
+
+        form {
+            margin-top: 2rem;
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        form h2 {
+            color: #4f46e5;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-top: 1rem;
+            color: #374151;
+            font-weight: 500;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75em;
+            margin-top: 0.5em;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #ffffff;
+        }
+
+        button[type="submit"] {
+            width: 100%;
+            margin-top: 1.5em;
+            background: #6366f1;
+            color: #fff;
+            padding: 0.9em;
+            font-size: 1.1em;
+            font-weight: 700;
+            border-radius: 10px;
+            box-shadow: 0 6px 14px rgba(99, 102, 241, 0.3);
+        }
+
+        button[type="submit"]:hover {
+            background: #4f46e5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📦 Item Manager</h1>
+
+        <div id="items">Loading...</div>
+
+        <form id="itemForm">
+            <h2>Add New Item</h2>
+            <label>
+                Name:
+                <input type="text" id="name" required>
+            </label>
+            <label>
+                Description:
+                <input type="text" id="description">
+            </label>
+            <button type="submit">+ Add Item</button>
+        </form>
+    </div>
+
+    <script>
+        const apiUrl = "/items/";
+        let editIndex = null;
+
+        async function fetchItems() {
+            const res = await fetch(apiUrl);
+            const items = await res.json();
+            const itemsDiv = document.getElementById('items');
+
+            if (items.length === 0) {
+                itemsDiv.innerHTML = "<em style='color: #6b7280;'>No items found.</em>";
+                return;
+            }
+
+            itemsDiv.innerHTML = items.map((item, idx) => {
+                if (editIndex === idx) {
+                    return `
+                    <div class="item">
+                        <div class="item-details">
+                            <input type="text" id="edit-name" value="${item.name}" style="margin-bottom:0.5em; width:100%;">
+                            <input type="text" id="edit-description" value="${item.description || ""}" style="width:100%;">
+                        </div>
+                        <div>
+                            <button class="save-btn" onclick="saveEdit(${idx})">Save</button>
+                            <button class="cancel-btn" onclick="cancelEdit()">Cancel</button>
+                        </div>
+                    </div>
+                    `;
+                } else {
+                    return `
+                    <div class="item">
+                        <div class="item-details">
+                            <strong>${item.name}</strong>
+                            <span>${item.description || ""}</span>
+                        </div>
+                        <div>
+                            <button class="edit-btn" onclick="startEdit(${idx})">Edit</button>
+                            <button class="delete-btn" onclick="deleteItem(${idx})">Delete</button>
+                        </div>
+                    </div>
+                    `;
+                }
+            }).join('');
+        }
+
+        document.getElementById('itemForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value.trim();
+            const description = document.getElementById('description').value.trim();
+
+            if (!name) return;
+
+            await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, description })
+            });
+
+            document.getElementById('itemForm').reset();
+            editIndex = null;
+            fetchItems();
+        });
+
+        async function deleteItem(idx) {
+            const res = await fetch(apiUrl);
+            const items = await res.json();
+
+            if (!items[idx]) return;
+
+            const item = items[idx];
+
+            await fetch(apiUrl + "delete/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(item)
+            });
+
+            editIndex = null;
+            fetchItems();
+        }
+
+        function startEdit(idx) {
+            editIndex = idx;
+            fetchItems();
+        }
+
+        function cancelEdit() {
+            editIndex = null;
+            fetchItems();
+        }
+
+        async function saveEdit(idx) {
+            const res = await fetch(apiUrl);
+            const items = await res.json();
+
+            if (!items[idx]) return;
+
+            const oldItem = items[idx];
+            const newName = document.getElementById('edit-name').value.trim();
+            const newDescription = document.getElementById('edit-description').value.trim();
+
+            if (!newName) return;
+
+            await fetch(apiUrl + "edit/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    old_name: oldItem.name,
+                    old_description: oldItem.description,
+                    new_name: newName,
+                    new_description: newDescription
+                })
+            });
+
+            editIndex = null;
+            fetchItems();
+        }
+
+        window.startEdit = startEdit;
+        window.cancelEdit = cancelEdit;
+        window.saveEdit = saveEdit;
+        window.deleteItem = deleteItem;
+
+        fetchItems();
+    </script>
+</body>
+</html>
